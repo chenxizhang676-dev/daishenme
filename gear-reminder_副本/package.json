@@ -1,0 +1,11 @@
+{
+  "name": "gear-reminder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "摄影装备到点提醒 App（Capacitor 安卓壳）",
+  "scripts": {
+    "sync": "npx cap sync",
+    "open:android": "npx cap open android",
+    "copy": "npx cap copy"
+  }
+}

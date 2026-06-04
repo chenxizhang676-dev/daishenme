@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>带装备提醒</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg:#FCFBF8; --bg2:#F3F0E8; --surface:#FFFFFF; --surface2:#F7F4ED;
+  --line:rgba(33,28,20,.10); --line2:rgba(33,28,20,.17);
+  --text:#211C14; --muted:#7C7464; --faint:#A8A092;
+  --amber:#B26A18; --amber-fill:#E0922E; --amber-soft:rgba(214,138,43,.14);
+  --red:#BD5026; --red-soft:rgba(189,80,38,.12);
+  --green:#5E8C3E; --green-soft:rgba(94,140,62,.14);
+  --shadow:0 1px 2px rgba(33,28,20,.04), 0 10px 26px -18px rgba(33,28,20,.22);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Hanken Grotesk',sans-serif;
+  background:var(--bg); color:var(--text);
+  display:flex; justify-content:center; overflow:hidden;
+}
+.grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.025;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+#app{
+  width:100%; max-width:440px; height:100dvh; position:relative;
+  background:radial-gradient(120% 80% at 50% -10%, #FFFDF7 0%, var(--bg) 55%);
+  display:flex; flex-direction:column; overflow:hidden;
+  border-left:1px solid var(--line); border-right:1px solid var(--line);
+}
+.scroll{flex:1; overflow-y:auto; padding:0 18px 110px; -webkit-overflow-scrolling:touch}
+.scroll::-webkit-scrollbar{width:0}
+
+.topbar{padding:26px 18px 14px; display:flex; align-items:flex-end; justify-content:space-between}
+.brand{display:flex; flex-direction:column; gap:2px}
+.brand .eyebrow{font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--amber)}
+.brand h1{font-family:'Fraunces',serif; font-weight:500; font-size:27px; line-height:1; letter-spacing:-.01em}
+.iconbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line2);background:var(--surface);
+  color:var(--text);display:grid;place-items:center;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+.iconbtn:active{transform:scale(.92);background:var(--surface2)}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:16px 16px;
+  margin-bottom:12px; cursor:pointer; transition:.18s; position:relative; overflow:hidden; box-shadow:var(--shadow)}
+.card:active{transform:scale(.985); border-color:var(--line2)}
+.card.flat{cursor:default}
+.card.flat:active{transform:none}
+
+.sect-label{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--faint);margin:22px 4px 11px;display:flex;align-items:center;gap:8px}
+.sect-label::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.shoot-row{display:flex;align-items:center;gap:14px}
+.daychip{flex-shrink:0;width:52px;text-align:center;background:var(--bg2);border:1px solid var(--line);
+  border-radius:12px;padding:7px 0}
+.daychip .d{font-family:'Fraunces',serif;font-size:22px;font-weight:600;line-height:1}
+.daychip .m{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.shoot-main{flex:1;min-width:0}
+.shoot-main .t{font-size:16px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shoot-main .meta{font-size:12.5px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:6px;background:var(--amber-soft);color:var(--amber);letter-spacing:.04em}
+.statusdot{font-size:11px;color:var(--faint)}
+
+.alert{border-radius:18px;padding:15px 16px;margin-bottom:12px;cursor:pointer;transition:.18s;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.alert:active{transform:scale(.985)}
+.alert.pack{background:var(--amber-soft);border:1px solid rgba(214,138,43,.4)}
+.alert.verify{background:var(--red-soft);border:1px solid rgba(189,80,38,.4)}
+.alert .ah{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+.alert.pack .ah{color:var(--amber)} .alert.verify .ah{color:var(--red)}
+.alert .at{font-size:16px;font-weight:600;margin-top:7px}
+.alert .as{font-size:12.5px;color:var(--muted);margin-top:3px}
+.alert .arrow{position:absolute;right:15px;top:50%;transform:translateY(-50%);opacity:.5}
+.pulse{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.empty{text-align:center;padding:60px 24px}
+.empty .ic{width:64px;height:64px;border-radius:20px;border:1px solid var(--line2);background:var(--surface);
+  display:grid;place-items:center;margin:0 auto 18px;color:var(--amber);box-shadow:var(--shadow)}
+.empty h3{font-family:'Fraunces',serif;font-weight:500;font-size:21px;margin-bottom:8px}
+.empty p{color:var(--muted);font-size:13.5px;line-height:1.6;max-width:240px;margin:0 auto}
+
+.fab{position:absolute;bottom:88px;right:18px;height:52px;padding:0 22px;border-radius:26px;border:none;
+  background:var(--amber-fill);color:#2a1c08;font-family:'Hanken Grotesk';font-weight:700;font-size:15px;
+  display:flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 12px 30px -8px rgba(224,146,46,.55);transition:.15s;z-index:50}
+.fab:active{transform:scale(.94)}
+
+.nav{position:absolute;bottom:0;left:0;right:0;height:74px;background:rgba(255,255,255,.85);
+  backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:60}
+.nav button{flex:1;background:none;border:none;color:var(--faint);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;cursor:pointer;font-family:'DM Mono',monospace;
+  font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;transition:.15s}
+.nav button.on{color:var(--amber)}
+.nav button:active{transform:scale(.9)}
+
+.check-item{display:flex;align-items:center;gap:13px;padding:13px 4px;border-bottom:1px solid var(--line)}
+.check-item:last-child{border:none}
+.box{flex-shrink:0;width:26px;height:26px;border-radius:8px;border:1.6px solid var(--line2);
+  display:grid;place-items:center;cursor:pointer;transition:.16s;color:transparent}
+.box.on{background:var(--amber-fill);border-color:var(--amber-fill);color:#2a1c08}
+.box.verify.on{background:var(--green);border-color:var(--green);color:#fff}
+.box:active{transform:scale(.85)}
+.check-item .name{flex:1;font-size:15px;transition:.16s}
+.check-item.done .name{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--line2)}
+.packtag{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;padding:2px 6px;border-radius:5px;
+  background:var(--amber-soft);color:var(--amber)}
+.rmbtn{color:var(--faint);background:none;border:none;cursor:pointer;padding:4px;display:grid;place-items:center}
+
+.mode-switch{display:flex;gap:6px;background:var(--bg2);padding:5px;border-radius:14px;margin:4px 0 18px}
+.mode-switch button{flex:1;padding:10px;border:none;border-radius:10px;background:none;color:var(--muted);
+  font-family:'Hanken Grotesk';font-weight:600;font-size:13.5px;cursor:pointer;transition:.16s}
+.mode-switch button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+
+.progress{height:5px;border-radius:3px;background:var(--bg2);overflow:hidden;margin:6px 0 4px}
+.progress i{display:block;height:100%;background:var(--amber-fill);border-radius:3px;transition:.4s}
+.progress.v i{background:var(--green)}
+
+.field{margin-bottom:16px}
+.field label{display:block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.field input,.field select,.field textarea{width:100%;background:var(--surface);border:1px solid var(--line2);
+  border-radius:12px;padding:14px;color:var(--text);font-family:'Hanken Grotesk';font-size:15px;outline:none;transition:.15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--amber)}
+.field select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%237C7464' stroke-width='2'%3E%3Cpath d='M3 5l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+
+.btn{width:100%;padding:16px;border:none;border-radius:14px;background:var(--amber-fill);color:#2a1c08;
+  font-family:'Hanken Grotesk';font-weight:700;font-size:15.5px;cursor:pointer;transition:.15s;box-shadow:0 10px 26px -12px rgba(224,146,46,.6)}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--line2);box-shadow:var(--shadow)}
+.btn.danger{background:none;color:var(--red);border:1px solid var(--red-soft);box-shadow:none}
+
+.additem{display:flex;gap:8px;margin-top:12px}
+.additem input{flex:1}
+.additem button{flex-shrink:0;width:50px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);color:var(--amber);font-size:22px;cursor:pointer}
+.additem button:active{background:var(--surface2)}
+
+.leadchip{display:inline-flex;align-items:center;gap:7px;background:var(--amber-soft);color:var(--amber);
+  border:1px solid rgba(214,138,43,.3);border-radius:11px;padding:8px 11px;margin:0 8px 8px 0;font-size:13.5px;font-weight:600}
+.leadchip button{background:none;border:none;color:var(--amber);cursor:pointer;display:grid;place-items:center;padding:0;opacity:.7}
+.leadchip button:active{opacity:1}
+
+.backrow{display:flex;align-items:center;gap:6px;padding:24px 18px 4px;cursor:pointer;color:var(--muted);font-size:14px;width:fit-content}
+.backrow:active{color:var(--text)}
+
+.note{font-size:12px;color:var(--muted);line-height:1.6;background:var(--bg2);border:1px solid var(--line);
+  border-radius:12px;padding:12px 14px;margin-top:8px}
+
+.fadein{animation:fade .4s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.stagger>*{animation:fade .45s ease both}
+
+/* ---- completion FX ---- */
+#fx{position:absolute;inset:0;pointer-events:none;z-index:500;overflow:hidden;display:none}
+#fx.show{display:block}
+.confetti{position:absolute;width:9px;height:14px;top:-24px;border-radius:2px;opacity:0;animation:confetti-fall 1.5s ease-in forwards}
+@keyframes confetti-fall{0%{opacity:1}100%{opacity:0;transform:translateY(112vh) rotate(680deg)}}
+.fx-flash{position:absolute;inset:0;background:#fff;opacity:0;animation:flash .45s ease forwards}
+@keyframes flash{0%{opacity:0}28%{opacity:.9}100%{opacity:0}}
+.fx-badge{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) scale(.6);text-align:center;
+  background:var(--surface);border:1px solid var(--line2);border-radius:22px;padding:24px 32px;
+  box-shadow:0 30px 70px -16px rgba(33,28,20,.32);opacity:0;animation:badge-pop .55s cubic-bezier(.2,.9,.3,1.35) forwards}
+@keyframes badge-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}60%{opacity:1}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.fx-badge .big{font-family:'Fraunces',serif;font-size:25px;font-weight:600;letter-spacing:-.01em}
+.fx-badge .sub{font-size:12.5px;color:var(--muted);margin-top:7px}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div id="app">
+  <div id="screen" class="scroll"></div>
+  <div id="fx"></div>
+  <button class="fab" id="fab" data-action="newShoot">＋ 排拍摄</button>
+  <nav class="nav" id="nav"></nav>
+</div>
+
+<script>
+const I = {
+  camera:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h3l1.5-2h5L14 7h3v9H3z"/><circle cx="10" cy="11" r="3"/></svg>',
+  layers:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3l7 4-7 4-7-4z"/><path d="M3 11l7 4 7-4"/></svg>',
+  gear:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="2.6"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.5 4.5l1.4 1.4M14 14l1.5 1.5M15.5 4.5L14 6M6 14l-1.5 1.5"/></svg>',
+  check:'<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 8l3.5 3.5L12 4"/></svg>',
+  arrow:'<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4l4 4-4 4"/></svg>',
+  back:'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4l-4 4 4 4"/></svg>',
+  x:'<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 4l6 6M10 4l-6 6"/></svg>',
+};
+
+const KEY='gearReminderV2';
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){} }
+function load(){ try{ const v=localStorage.getItem(KEY); return v?JSON.parse(v):null; }catch(e){ return null; } }
+
+/* ----- 原生本地通知（Capacitor）；当作普通网页打开时全部静默无操作 ----- */
+const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+let LN = null; const NBLOCK = 40;
+function allocBase(){ const b = db.seq || 1000; db.seq = b + NBLOCK; return b; }
+async function initNotifications(){
+  if(!isNative) return;
+  try{
+    LN = window.Capacitor.Plugins.LocalNotifications;
+    const perm = await LN.checkPermissions();
+    if(perm.display !== 'granted') await LN.requestPermissions();
+    await rescheduleAll();
+  }catch(e){ console.warn('notif init failed', e); LN=null; }
+}
+function shootNotifs(s){
+  const r=reminders(s), now=new Date(), base=s.baseId, name=s.title||s.templateName, list=[];
+  if(r.night>now) list.push({id:base, title:'该收拾装备了 🎒',
+    body:`${rel(r.when)} ${fmtTime(r.when)} 的「${name}」，把 ${s.checklist.length} 件装备装包`, schedule:{at:r.night}});
+  r.outs.forEach((t,i)=>{ if(t>now) list.push({id:base+1+i, title:'出门前核对装备 ✔',
+    body:`${fmtTime(r.when)} 出发 ·「${name}」走前对一遍清单，别落东西`, schedule:{at:t}}); });
+  return list;
+}
+async function scheduleShoot(s){ if(!LN) return; try{ await cancelShoot(s);
+  const ns=shootNotifs(s); if(ns.length) await LN.schedule({notifications:ns}); }catch(e){ console.warn(e); } }
+async function cancelShoot(s){ if(!LN) return; const ids=[]; for(let i=0;i<NBLOCK;i++) ids.push({id:s.baseId+i});
+  try{ await LN.cancel({notifications:ids}); }catch(e){} }
+async function rescheduleAll(){ if(!LN) return;
+  for(const s of db.shoots){ if(status(s)==='verified') await cancelShoot(s); else await scheduleShoot(s); } }
+
+let db, view={screen:'home',mode:'pack',id:null,editingItems:false};
+const uid=()=>Math.random().toString(36).slice(2,9);
+function pad(n){return n.toString().padStart(2,'0');}
+
+function seed(){
+  const t1=uid(), t2=uid();
+  const d=new Date(); d.setDate(d.getDate()+1); d.setHours(14,0,0,0);
+  return {
+    templates:[
+      {id:t1,name:'婚礼',items:['主机身','备用机身','24-70mm','70-200mm','35mm 定焦','闪光灯 ×2','离机引闪器','备用电池 ×6','存储卡 ×4','读卡器','清洁布','名片']},
+      {id:t2,name:'风光',items:['机身','广角镜头','三脚架','ND 减光镜','渐变灰滤镜','快门线','备用电池 ×3','存储卡 ×2','头灯','登山包']},
+    ],
+    shoots:[{
+      id:uid(), baseId:1000, title:'城郊庄园婚礼', when:d.toISOString(), location:'城郊庄园',
+      templateId:t1, templateName:'婚礼',
+      checklist:['主机身','备用机身','24-70mm','70-200mm','35mm 定焦','闪光灯 ×2','离机引闪器','备用电池 ×6','存储卡 ×4','读卡器','清洁布','名片'].map(n=>({name:n,packed:false,verified:false})),
+    }],
+    settings:{nightTime:'20:00', leads:[120,30]},
+    seq:1040,
+  };
+}
+function normSettings(s){
+  s=s||{};
+  if(!s.nightTime) s.nightTime = (s.nightHour? pad(s.nightHour)+':00' : '20:00');
+  if(!Array.isArray(s.leads)) s.leads = [ s.leadMin || 60 ];
+  delete s.nightHour; delete s.leadMin;
+  return s;
+}
+
+function reminders(s){
+  const when=new Date(s.when);
+  const [nh,nm]=db.settings.nightTime.split(':').map(Number);
+  const night=new Date(when); night.setDate(night.getDate()-1); night.setHours(nh,nm,0,0);
+  const outs=db.settings.leads.map(m=>new Date(when.getTime()-m*60000)).sort((a,b)=>a-b);
+  return {when,night,outs};
+}
+const M=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+function fmtTime(d){return pad(d.getHours())+':'+pad(d.getMinutes());}
+function fmtDur(m){const h=Math.floor(m/60),mm=m%60; if(h&&mm)return h+' 小时 '+mm+' 分'; if(h)return h+' 小时'; return mm+' 分钟';}
+function rel(d){
+  const now=new Date();
+  const a=new Date(now); a.setHours(0,0,0,0); const b=new Date(d); b.setHours(0,0,0,0);
+  const dd=Math.round((b-a)/86400000);
+  if(d-now<0) return '已过';
+  if(dd===0) return '今天';
+  if(dd===1) return '明天';
+  if(dd<7) return dd+' 天后';
+  return (M[d.getMonth()])+d.getDate()+'日';
+}
+function status(s){
+  const allP=s.checklist.every(i=>i.packed), allV=s.checklist.every(i=>i.verified);
+  if(allV) return 'verified'; if(allP) return 'packed'; if(s.checklist.some(i=>i.packed)) return 'packing'; return 'new';
+}
+
+const screen=document.getElementById('screen');
+const fab=document.getElementById('fab');
+let lastScreen=null;
+
+function render(){
+  fab.style.display = view.screen==='home' ? 'flex' : 'none';
+  const changed = view.screen!==lastScreen;
+  const sc = screen.scrollTop;
+  let html='';
+  if(view.screen==='home') html=homeView();
+  else if(view.screen==='newShoot') html=shootForm();
+  else if(view.screen==='templates') html=templatesView();
+  else if(view.screen==='editTemplate') html=templateForm();
+  else if(view.screen==='checklist') html=checklistView();
+  else if(view.screen==='settings') html=settingsView();
+  screen.innerHTML=html;
+  renderNav();
+  screen.scrollTop = changed ? 0 : sc;
+  lastScreen=view.screen;
+}
+
+function homeView(){
+  const now=new Date();
+  const shoots=[...db.shoots].sort((a,b)=>new Date(a.when)-new Date(b.when));
+  const upcoming=shoots.filter(s=>new Date(s.when)>=now || status(s)!=='verified');
+  const past=shoots.filter(s=>new Date(s.when)<now && status(s)==='verified');
+
+  let alerts='';
+  upcoming.forEach(s=>{
+    const r=reminders(s), st=status(s);
+    if(now>=r.outs[0] && st!=='verified'){
+      alerts+=`<div class="alert verify fadein" data-action="open" data-id="${s.id}" data-mode="verify">
+        <div class="ah"><span class="pulse"></span>出门核对</div>
+        <div class="at">${s.title||s.templateName}</div>
+        <div class="as">${fmtTime(r.when)} 出发 · 走前最后扫一遍，别落东西</div>
+        <span class="arrow">${I.arrow}</span></div>`;
+    } else if(now>=r.night && st==='new'){
+      alerts+=`<div class="alert pack fadein" data-action="open" data-id="${s.id}" data-mode="pack">
+        <div class="ah"><span class="pulse"></span>该收拾了</div>
+        <div class="at">${s.title||s.templateName}</div>
+        <div class="as">${rel(r.when)} ${fmtTime(r.when)} 的拍摄 · 把 ${s.checklist.length} 件装备装包</div>
+        <span class="arrow">${I.arrow}</span></div>`;
+    }
+  });
+
+  let body='';
+  if(!shoots.length){
+    body=`<div class="empty fadein"><div class="ic">${I.camera}</div>
+      <h3>还没有排拍摄</h3>
+      <p>排一场拍摄、选好装备清单类型，到点我就提醒你收拾和核对。</p></div>`;
+  }else{
+    body+=alerts;
+    body+=`<div class="sect-label">即将到来</div><div class="stagger">`;
+    body+= upcoming.map((s,i)=>shootCard(s,i)).join('') || `<div class="card flat" style="color:var(--muted);font-size:13px;text-align:center">暂无即将到来的拍摄</div>`;
+    body+=`</div>`;
+    if(past.length){ body+=`<div class="sect-label">已完成</div>`; body+= past.map(s=>shootCard(s,0,true)).join(''); }
+  }
+  return `<div class="topbar"><div class="brand">
+      <span class="eyebrow">${new Date().getFullYear()} · 装备清单</span>
+      <h1>带什么</h1></div>
+      <button class="iconbtn" data-action="go" data-screen="settings">${I.gear}</button>
+    </div>${body}`;
+}
+
+function shootCard(s,idx,muted){
+  const r=reminders(s), st=status(s);
+  const d=new Date(s.when);
+  const stLabel={new:'未收拾',packing:'收拾中',packed:'已装包·待核对',verified:'已核对 ✓'}[st];
+  const packed=s.checklist.filter(i=>i.packed).length;
+  return `<div class="card" data-action="open" data-id="${s.id}" style="animation-delay:${idx*.05}s;${muted?'opacity:.6':''}">
+    <div class="shoot-row">
+      <div class="daychip"><div class="d">${d.getDate()}</div><div class="m">${M[d.getMonth()]}</div></div>
+      <div class="shoot-main">
+        <div class="t">${s.title||s.templateName}</div>
+        <div class="meta"><span class="tag">${s.templateName}</span><span>${rel(d)} ${fmtTime(d)}</span></div>
+        <div class="meta"><span class="statusdot">${stLabel} · ${packed}/${s.checklist.length}</span></div>
+      </div>
+      <span style="color:var(--faint)">${I.arrow}</span>
+    </div></div>`;
+}
+
+function shootForm(){
+  const opts=db.templates.map(t=>`<option value="${t.id}">${t.name}（${t.items.length} 件）</option>`).join('');
+  const d=new Date(); d.setDate(d.getDate()+2); d.setHours(14,0);
+  const dv=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return back('排一场拍摄')+`<div class="fadein" style="padding:8px 0">
+    <div class="field"><label>给它起个名（可选）</label><input id="f-title" placeholder="如：林家婚礼 / 城南扫街"></div>
+    <div class="field"><label>什么时候拍</label><input id="f-when" type="datetime-local" value="${dv}"></div>
+    <div class="field"><label>地点（可选）</label><input id="f-loc" placeholder="如：城郊庄园"></div>
+    <div class="field"><label>带哪套装备</label><select id="f-tpl">${opts}</select></div>
+    <div class="note">选定类型后，会把这套清单复制一份给本次拍摄，之后你能临时加减、也会按你设置的时间提醒你收拾和核对。</div>
+    <div style="height:18px"></div>
+    <button class="btn" data-action="saveShoot">排好，开始提醒我</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" data-action="go" data-screen="home">取消</button>
+  </div>`;
+}
+
+function templatesView(){
+  const list=db.templates.map(t=>`<div class="card" data-action="editTpl" data-id="${t.id}">
+      <div class="shoot-row"><div style="flex:1">
+        <div class="t" style="font-size:16px;font-weight:600">${t.name}</div>
+        <div class="meta"><span style="color:var(--muted);font-size:12.5px">${t.items.length} 件装备 · ${t.items.slice(0,3).join('、')}${t.items.length>3?'…':''}</span></div>
+      </div><span style="color:var(--faint)">${I.arrow}</span></div></div>`).join('');
+  return `<div class="topbar"><div class="brand"><span class="eyebrow">按类型分</span><h1>装备模板</h1></div></div>
+    <div class="stagger">${list}</div>
+    <div style="height:10px"></div>
+    <button class="btn ghost" data-action="newTpl">＋ 新建模板</button>`;
+}
+
+function templateForm(){
+  const t = view.id ? db.templates.find(x=>x.id===view.id) : {name:'',items:[]};
+  if(!ACT._draft) ACT._draft={name:t.name,items:[...t.items]};
+  return renderTplDraft(true);
+}
+function renderTplDraft(returnStr){
+  const t=ACT._draft;
+  const items=t.items.map((it,i)=>`<div class="check-item"><div class="name">${it}</div>
+     <button class="rmbtn" data-action="rmTplItem" data-i="${i}">${I.x}</button></div>`).join('') || `<div style="color:var(--faint);font-size:13px;padding:10px 4px">还没加装备，下面输入框添加</div>`;
+  const html=back(view.id?'编辑模板':'新建模板')+`<div style="padding:8px 0">
+    <div class="field"><label>模板名称（拍摄类型）</label><input id="t-name" value="${t.name}" placeholder="如：婚礼 / 风光 / 棚拍" oninput="ACT._draft.name=this.value"></div>
+    <div class="sect-label">装备清单</div>
+    <div class="card flat">${items}</div>
+    <div class="additem"><input id="t-newitem" placeholder="加一件装备，回车" onkeydown="if(event.key==='Enter')ACT.addTplItem()"><button data-action="addTplItem">＋</button></div>
+    <div style="height:20px"></div>
+    <button class="btn" data-action="saveTpl">保存模板</button>
+    ${view.id?`<div style="height:10px"></div><button class="btn danger" data-action="delTpl">删除这个模板</button>`:''}
+  </div>`;
+  if(returnStr) return html;
+  screen.innerHTML=html;
+}
+
+function checklistView(){
+  const s=db.shoots.find(x=>x.id===view.id); if(!s){view.screen='home';return homeView();}
+  const r=reminders(s);
+  const isPack=view.mode==='pack';
+  const total=s.checklist.length;
+  const done=s.checklist.filter(i=> isPack?i.packed:i.verified).length;
+  const items=s.checklist.map((it,i)=>{
+    const on = isPack?it.packed:it.verified;
+    return `<div class="check-item ${on?'done':''}">
+      <div class="box ${isPack?'':'verify'} ${on?'on':''}" data-action="toggle" data-i="${i}">${I.check}</div>
+      <div class="name">${it.name}</div>
+      ${(!isPack && it.packed)?'<span class="packtag">昨晚已装</span>':''}
+      ${view.editingItems?`<button class="rmbtn" data-action="rmChkItem" data-i="${i}">${I.x}</button>`:''}
+    </div>`;
+  }).join('');
+  const outTimes=r.outs.map(fmtTime).join(' / ');
+  return back(s.title||s.templateName)+`<div class="fadein" style="padding:6px 0">
+    <div class="meta" style="display:flex;gap:8px;margin:0 4px 14px;font-size:12.5px;color:var(--muted)">
+      <span class="tag">${s.templateName}</span><span>${rel(r.when)} ${fmtTime(r.when)}</span>${s.location?`<span>· ${s.location}</span>`:''}
+    </div>
+    <div class="mode-switch">
+      <button class="${isPack?'on':''}" data-action="mode" data-mode="pack">🎒 收拾（装包）</button>
+      <button class="${!isPack?'on':''}" data-action="mode" data-mode="verify">✔ 出门核对</button>
+    </div>
+    <div class="progress ${isPack?'':'v'}"><i style="width:${total?done/total*100:0}%"></i></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
+      <span>${isPack?'已装包':'已核对'} ${done}/${total}</span>
+      <span data-action="toggleEdit" style="color:var(--amber);cursor:pointer">${view.editingItems?'完成编辑':'临时加减装备'}</span>
+    </div>
+    <div class="card flat">${items}</div>
+    ${view.editingItems?`<div class="additem"><input id="c-newitem" placeholder="为这次加一件" onkeydown="if(event.key==='Enter')ACT.addChkItem()"><button data-action="addChkItem">＋</button></div>`:''}
+    <div style="height:18px"></div>
+    ${done===total&&total>0?`<button class="btn" data-action="go" data-screen="home">${isPack?'装包完成 — 出门前我再提醒你核对':'全部核对完毕 ✓ 出发吧'}</button>`
+      :`<div class="note">${isPack?`今晚把 ${total} 件装备装进包，逐项打勾。出门前（${outTimes}）我会再提醒你核对。`:`走之前对照清单确认实物都在包里。出门提醒：${outTimes}。`}</div>`}
+  </div>`;
+}
+
+function settingsView(){
+  const leads=[...db.settings.leads].sort((a,b)=>b-a);
+  const chips=leads.map((m)=>`<div class="leadchip">提前 ${fmtDur(m)}<button data-action="rmLead" data-min="${m}">${I.x}</button></div>`).join('')
+    || '<span style="color:var(--faint);font-size:13px">还没设置，下面添加一条</span>';
+  return `<div class="topbar"><div class="brand"><span class="eyebrow">提醒节奏</span><h1>设置</h1></div>
+    <button class="iconbtn" data-action="go" data-screen="home">${I.back}</button></div>
+    <div class="fadein">
+    <div class="field"><label>前一天 — 几点提醒收拾</label>
+      <input id="s-night" type="time" value="${db.settings.nightTime}" onchange="ACT.setNight(this.value)"></div>
+
+    <div class="sect-label">出门前核对提醒（可加多条）</div>
+    <div style="margin-bottom:12px">${chips}</div>
+    <div class="additem">
+      <input id="s-leadmin" type="number" min="1" placeholder="提前多少分钟，如 90" onkeydown="if(event.key==='Enter')ACT.addLead()">
+      <button data-action="addLead">＋</button>
+    </div>
+    <div class="note">精确到分钟。例如加「120」和「30」，出门前 2 小时和 30 分钟会各提醒你核对一次。</div>
+
+    <div class="sect-label">关于</div>
+    <div class="note">这是个原型。真正"到点自动弹手机推送"需要打包成手机 app 后台运行；现在提醒会在你打开应用时出现在首页。把这套逻辑交给 AI 编程工具，就能做成真正会推送的版本。</div>
+    <div style="height:14px"></div>
+    <button class="btn danger" data-action="reset">清空数据 / 重置示例</button>
+    </div>`;
+}
+
+function back(title){return `<div class="backrow" data-action="back">${I.back}<span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase">返回</span></div>
+  <div style="padding:2px 0 4px"><h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:25px;letter-spacing:-.01em">${title}</h1></div>`;}
+
+function renderNav(){
+  const tab=view.screen==='templates'?'tpl':view.screen==='settings'?'set':'home';
+  document.getElementById('nav').innerHTML=`
+    <button class="${tab==='home'?'on':''}" data-action="go" data-screen="home">${I.camera}拍摄</button>
+    <button class="${tab==='tpl'?'on':''}" data-action="go" data-screen="templates">${I.layers}模板</button>
+    <button class="${tab==='set'?'on':''}" data-action="go" data-screen="settings">${I.gear}设置</button>`;
+}
+
+/* ---------- celebration ---------- */
+function celebrate(kind){
+  const fx=document.getElementById('fx');
+  const colors=['#E0922E','#BD5026','#5E8C3E','#211C14','#D98A2B','#C9A24B'];
+  let html = kind==='verify' ? '<div class="fx-flash"></div>' : '';
+  for(let i=0;i<36;i++){
+    const c=colors[i%colors.length];
+    const left=Math.random()*100, delay=Math.random()*.35, dur=1.1+Math.random()*.7, rot=Math.random()*360;
+    html+=`<div class="confetti" style="left:${left}%;background:${c};animation-duration:${dur}s;animation-delay:${delay}s;transform:rotate(${rot}deg)"></div>`;
+  }
+  html += kind==='verify'
+    ? `<div class="fx-badge"><div class="big">齐了，出发 ✦</div><div class="sub">装备全部核对完毕</div></div>`
+    : `<div class="fx-badge"><div class="big">🎒 装包完成</div><div class="sub">出门前我再提醒你核对一遍</div></div>`;
+  fx.innerHTML=html;
+  fx.classList.add('show');
+  clearTimeout(fx._t);
+  fx._t=setTimeout(()=>{fx.classList.remove('show');fx.innerHTML='';},2100);
+}
+
+/* ---------- actions ---------- */
+const ACT={
+  _draft:null,
+  go(d){ACT._draft=null;view={screen:d.screen,mode:'pack',id:null,editingItems:false};render();},
+  back(){ACT._draft=null;view={screen:'home',mode:'pack',id:null,editingItems:false};render();},
+  newShoot(){view.screen='newShoot';render();},
+  open(d){const s=db.shoots.find(x=>x.id===d.id);view.id=d.id;view.screen='checklist';
+    view.mode=d.mode || (status(s)==='new'||status(s)==='packing'?'pack':'verify');view.editingItems=false;render();},
+  mode(d){view.mode=d.mode;render();},
+  toggle(d){
+    const s=db.shoots.find(x=>x.id===view.id);const it=s.checklist[+d.i];
+    const field=view.mode==='pack'?'packed':'verified';
+    const wasAll=s.checklist.length>0 && s.checklist.every(i=>i[field]);
+    if(view.mode==='pack'){it.packed=!it.packed; if(!it.packed) it.verified=false;}
+    else it.verified=!it.verified;
+    const nowAll=s.checklist.length>0 && s.checklist.every(i=>i[field]);
+    save();
+    if(status(s)==='verified') cancelShoot(s);
+    render();
+    if(!wasAll && nowAll) celebrate(view.mode);
+  },
+  toggleEdit(){view.editingItems=!view.editingItems;render();},
+  addChkItem(){const inp=document.getElementById('c-newitem');const v=inp.value.trim();if(!v)return;
+    db.shoots.find(x=>x.id===view.id).checklist.push({name:v,packed:false,verified:false});save();render();
+    setTimeout(()=>{const n=document.getElementById('c-newitem');if(n)n.focus();},0);},
+  rmChkItem(d){db.shoots.find(x=>x.id===view.id).checklist.splice(+d.i,1);save();render();},
+  saveShoot(){
+    const when=document.getElementById('f-when').value;
+    const tid=document.getElementById('f-tpl').value;
+    if(!when){alert('选个时间吧');return;}
+    const tpl=db.templates.find(t=>t.id===tid);
+    const s={id:uid(),baseId:allocBase(),title:document.getElementById('f-title').value.trim(),
+      when:new Date(when).toISOString(),location:document.getElementById('f-loc').value.trim(),
+      templateId:tpl.id,templateName:tpl.name,
+      checklist:tpl.items.map(n=>({name:n,packed:false,verified:false}))};
+    db.shoots.push(s);
+    save();scheduleShoot(s);ACT._draft=null;view={screen:'home',mode:'pack',id:null,editingItems:false};render();},
+  newTpl(){ACT._draft={name:'',items:[]};view.id=null;view.screen='editTemplate';render();},
+  editTpl(d){const t=db.templates.find(x=>x.id===d.id);ACT._draft={name:t.name,items:[...t.items]};view.id=d.id;view.screen='editTemplate';render();},
+  addTplItem(){const inp=document.getElementById('t-newitem');const v=inp.value.trim();if(!v)return;
+    ACT._draft.items.push(v);renderTplDraft();
+    setTimeout(()=>{const n=document.getElementById('t-newitem');if(n)n.focus();},0);},
+  rmTplItem(d){ACT._draft.items.splice(+d.i,1);renderTplDraft();},
+  saveTpl(){const t=ACT._draft;if(!t.name.trim()){alert('给模板起个名');return;}
+    if(view.id){const ex=db.templates.find(x=>x.id===view.id);ex.name=t.name.trim();ex.items=[...t.items];}
+    else db.templates.push({id:uid(),name:t.name.trim(),items:[...t.items]});
+    ACT._draft=null;save();view={screen:'templates',mode:'pack',id:null,editingItems:false};render();},
+  delTpl(){if(db.shoots.some(s=>s.templateId===view.id)){if(!confirm('有拍摄用了这个模板（已复制副本，不受影响）。仍要删除模板？'))return;}
+    db.templates=db.templates.filter(x=>x.id!==view.id);ACT._draft=null;save();view={screen:'templates',mode:'pack',id:null,editingItems:false};render();},
+  setNight(v){if(v)db.settings.nightTime=v;save();rescheduleAll();},
+  addLead(){const inp=document.getElementById('s-leadmin');const m=parseInt(inp.value,10);
+    if(!m||m<1){inp.focus();return;}
+    if(!db.settings.leads.includes(m)) db.settings.leads.push(m);
+    save();rescheduleAll();render();setTimeout(()=>{const n=document.getElementById('s-leadmin');if(n)n.focus();},0);},
+  rmLead(d){const m=+d.min;db.settings.leads=db.settings.leads.filter(x=>x!==m);save();rescheduleAll();render();},
+  reset(){if(confirm('清空所有数据并恢复示例？')){const old=db.shoots.slice();db=seed();save();view={screen:'home',mode:'pack',id:null,editingItems:false};render();
+    (async()=>{ for(const s of old) await cancelShoot(s); await rescheduleAll(); })();}},
+};
+
+document.getElementById('app').addEventListener('click',e=>{
+  const el=e.target.closest('[data-action]'); if(!el)return;
+  const a=el.dataset.action; const fn=ACT[a];
+  if(fn) fn({...el.dataset});
+});
+
+(async function(){
+  const saved=load();
+  db = saved || seed();
+  db.settings = normSettings(db.settings);
+  if(typeof db.seq!=='number') db.seq=1000;
+  db.shoots.forEach(s=>{ if(typeof s.baseId!=='number'){ s.baseId=db.seq; db.seq+=NBLOCK; } });
+  if(!saved) save();
+  render();
+  initNotifications();
+})();
+</script>
+</body>
+</html>
