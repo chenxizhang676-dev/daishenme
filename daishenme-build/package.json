@@ -1,0 +1,21 @@
+{
+  "name": "gear-reminder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "摄影装备到点提醒 App（Capacitor 安卓壳）",
+  "scripts": {
+    "add:android": "cap add android",
+    "patch": "node patch-manifest.mjs",
+    "sync": "cap sync",
+    "open:android": "cap open android",
+    "copy": "cap copy"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6",
+    "@capacitor/core": "^6",
+    "@capacitor/local-notifications": "^6"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6"
+  }
+}
