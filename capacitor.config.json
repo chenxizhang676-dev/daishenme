@@ -1,0 +1,8 @@
+{
+  "appId": "com.daishenme.app",
+  "appName": "带什么",
+  "webDir": "www",
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_icon", "iconColor": "#c8821a" }
+  }
+}
