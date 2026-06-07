@@ -1,0 +1,790 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<title>带什么</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f7f2e8; --paper2:#fffdf7; --ink:#221d16; --ink2:#5b5044;
+  --line:#e3d9c6; --amber:#c8821a; --amber-soft:#f1e0bf; --amber-ink:#7a4e0c;
+  --green:#2f5d4f; --green-soft:#dceae2; --rust:#9c4a2f; --rust-soft:#f0ddd2;
+  --shadow:0 1px 2px rgba(34,29,22,.05),0 8px 24px rgba(34,29,22,.06);
+  --serif:'Fraunces',Georgia,'Songti SC','Noto Serif CJK SC',serif;
+  --sans:'Hanken Grotesk','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+  --mono:'DM Mono','SFMono-Regular',Menlo,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:15px; line-height:1.5; overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{ /* 颗粒纹理 */
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#app{position:relative;z-index:1;max-width:480px;margin:0 auto;min-height:100%;
+  display:flex;flex-direction:column;}
+.scroll{flex:1;overflow-y:auto;padding:0 18px 120px;
+  padding-top:env(safe-area-inset-top);-webkit-overflow-scrolling:touch;}
+
+/* 顶栏 */
+header{padding:22px 18px 12px;display:flex;align-items:flex-end;justify-content:space-between;}
+header .wordmark{font-family:var(--serif);font-weight:600;font-size:30px;letter-spacing:-.5px;line-height:1;}
+header .sub{font-family:var(--mono);font-size:11px;color:var(--ink2);letter-spacing:1px;margin-top:5px;text-transform:uppercase;}
+.statuschip{font-family:var(--mono);font-size:11px;padding:5px 9px;border-radius:999px;border:1px solid var(--line);
+  background:var(--paper2);display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+.statuschip .dot{width:7px;height:7px;border-radius:50%;background:var(--ink2);}
+.statuschip.ok .dot{background:var(--green);} .statuschip.bad .dot{background:var(--rust);}
+
+/* 通用 */
+h2{font-family:var(--serif);font-weight:600;font-size:21px;margin:26px 0 12px;letter-spacing:-.3px;}
+.muted{color:var(--ink2);} .mono{font-family:var(--mono);}
+.card{background:var(--paper2);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);}
+.card+.card{margin-top:12px;}
+button{font-family:var(--sans);font-size:15px;cursor:pointer;border:none;background:none;color:inherit;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:13px 18px;border-radius:12px;
+  font-weight:600;transition:transform .08s,filter .15s;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--ink);color:var(--paper);}
+.btn-amber{background:var(--amber);color:#fff;}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+.btn-block{width:100%;}
+.tag{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:999px;background:var(--amber-soft);color:var(--amber-ink);letter-spacing:.3px;}
+.tag.green{background:var(--green-soft);color:var(--green);}
+.tag.rust{background:var(--rust-soft);color:var(--rust);}
+input,select{font-family:var(--sans);font-size:15px;width:100%;padding:12px 13px;border:1px solid var(--line);
+  border-radius:11px;background:var(--paper2);color:var(--ink);}
+input:focus,select:focus{outline:none;border-color:var(--amber);}
+label.fld{display:block;font-size:12.5px;color:var(--ink2);margin:14px 0 6px;font-weight:600;}
+.row{display:flex;gap:10px;align-items:center;}
+
+/* 底部导航 */
+nav{position:fixed;bottom:0;left:0;right:0;z-index:5;max-width:480px;margin:0 auto;
+  background:rgba(247,242,232,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;color:var(--ink2);}
+nav button.active{color:var(--ink);}
+nav .ico{font-size:19px;line-height:1;}
+nav .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.5px;}
+
+/* 拍摄卡 */
+.shoot{cursor:pointer;}
+.shoot .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.shoot .title{font-family:var(--serif);font-size:18px;font-weight:600;}
+.shoot .when{font-family:var(--mono);font-size:12.5px;color:var(--ink2);margin-top:3px;}
+.shoot .meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;align-items:center;}
+.bar{height:6px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:12px;}
+.bar>i{display:block;height:100%;background:var(--amber);border-radius:999px;transition:width .4s;}
+.prog{font-family:var(--mono);font-size:11.5px;color:var(--ink2);margin-top:6px;}
+
+/* 清单项 */
+.check{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--line);}
+.check:last-child{border-bottom:none;}
+.box{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);flex:none;display:flex;
+  align-items:center;justify-content:center;transition:.15s;}
+.check.on .box{background:var(--amber);border-color:var(--amber);}
+.check.on.verify .box{background:var(--green);border-color:var(--green);}
+.box svg{width:14px;height:14px;stroke:#fff;stroke-width:3;fill:none;opacity:0;transition:.15s;}
+.check.on .box svg{opacity:1;}
+.check .name{flex:1;}
+.check.on .name{color:var(--ink2);text-decoration:line-through;}
+.lastnight{font-family:var(--mono);font-size:10px;color:var(--green);border:1px solid var(--green-soft);
+  padding:2px 6px;border-radius:6px;}
+.del{color:var(--rust);font-size:13px;opacity:.6;padding:4px;}
+
+/* 模式切换 */
+.modes{display:flex;background:var(--amber-soft);border-radius:12px;padding:4px;margin:4px 0 14px;}
+.modes button{flex:1;padding:9px;border-radius:9px;font-weight:600;font-size:13.5px;color:var(--amber-ink);}
+.modes button.active{background:var(--paper2);color:var(--ink);box-shadow:var(--shadow);}
+
+/* 天气 + 光照 */
+.wx{display:flex;align-items:center;gap:14px;}
+.wx .emoji{font-size:40px;line-height:1;}
+.wx .big{font-family:var(--serif);font-size:26px;font-weight:600;}
+.wx .desc{font-size:13px;color:var(--ink2);}
+.wxgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px;}
+.wxgrid .cell{text-align:center;}
+.wxgrid .v{font-family:var(--mono);font-size:16px;font-weight:500;}
+.wxgrid .k{font-size:11px;color:var(--ink2);margin-top:2px;}
+.verdict{margin-top:13px;padding:11px 13px;border-radius:11px;font-size:13.5px;line-height:1.45;}
+.verdict.good{background:var(--green-soft);color:var(--green);}
+.verdict.mid{background:var(--amber-soft);color:var(--amber-ink);}
+.verdict.bad{background:var(--rust-soft);color:var(--rust);}
+.suntimes{display:flex;flex-direction:column;gap:2px;margin-top:6px;}
+.suntimes .t{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);}
+.suntimes .t:last-child{border-bottom:none;}
+.suntimes .t .l{display:flex;align-items:center;gap:9px;}
+.suntimes .t .ic{width:26px;text-align:center;font-size:16px;}
+.suntimes .t .nm{font-size:14px;font-weight:600;}
+.suntimes .t .nm small{display:block;font-weight:400;color:var(--ink2);font-size:11.5px;}
+.suntimes .t .v{font-family:var(--mono);font-size:15px;}
+.gold{color:var(--amber);} .blue{color:#3a5a86;}
+.best{background:linear-gradient(120deg,var(--amber-soft),#fbeed0);border:1px solid var(--amber);
+  border-radius:12px;padding:13px;margin-top:6px;}
+.best .h{font-family:var(--serif);font-weight:600;font-size:15px;color:var(--amber-ink);}
+.best .b{font-size:13.5px;color:var(--amber-ink);margin-top:4px;line-height:1.5;}
+
+/* 空状态 */
+.empty{text-align:center;padding:48px 20px;}
+.empty .ic{font-size:46px;}
+.empty h3{font-family:var(--serif);font-size:20px;margin:14px 0 6px;}
+.empty p{color:var(--ink2);margin:0 0 20px;}
+
+/* 自检 */
+.diag{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);}
+.diag:last-child{border-bottom:none;}
+.diag .s{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;}
+.diag .s.ok{background:var(--green);} .diag .s.no{background:var(--rust);} .diag .s.warn{background:var(--amber);}
+.diag .tx{flex:1;} .diag .tx b{font-size:14px;} .diag .tx small{display:block;color:var(--ink2);font-size:12px;margin-top:2px;}
+.diag .act{font-family:var(--mono);font-size:12px;color:var(--amber-ink);border:1px solid var(--amber-soft);
+  padding:6px 10px;border-radius:8px;background:var(--amber-soft);white-space:nowrap;}
+
+/* 弹层 */
+.sheet-bg{position:fixed;inset:0;z-index:20;background:rgba(34,29,22,.4);display:none;}
+.sheet-bg.show{display:block;}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-width:480px;margin:0 auto;
+  background:var(--paper);border-radius:22px 22px 0 0;padding:8px 18px calc(24px + env(safe-area-inset-bottom));
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-height:90vh;overflow-y:auto;}
+.sheet.show{transform:translateY(0);}
+.grab{width:38px;height:4px;border-radius:999px;background:var(--line);margin:8px auto 6px;}
+.sheet h3{font-family:var(--serif);font-size:20px;margin:6px 0 4px;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{padding:9px 14px;border-radius:11px;border:1px solid var(--line);background:var(--paper2);font-size:14px;}
+.chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.itemline{display:flex;gap:8px;align-items:center;margin-top:8px;}
+.itemline button{color:var(--rust);padding:6px;}
+
+/* 动效 */
+.fade{animation:fade .45s both;}
+@keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.stagger>*{animation:fade .45s both;}
+.stagger>*:nth-child(1){animation-delay:.02s}.stagger>*:nth-child(2){animation-delay:.06s}
+.stagger>*:nth-child(3){animation-delay:.1s}.stagger>*:nth-child(4){animation-delay:.14s}
+.stagger>*:nth-child(5){animation-delay:.18s}.stagger>*:nth-child(n+6){animation-delay:.22s}
+#flash{position:fixed;inset:0;z-index:60;background:#fff;opacity:0;pointer-events:none;}
+#flash.go{animation:shutter .5s ease-out;}
+@keyframes shutter{0%{opacity:0}8%{opacity:.95}100%{opacity:0}}
+#confetti{position:fixed;inset:0;z-index:61;pointer-events:none;overflow:hidden;}
+.conf{position:absolute;width:9px;height:14px;top:-20px;will-change:transform;}
+@keyframes drop{to{transform:translateY(105vh) rotate(720deg);}}
+.badge{position:fixed;z-index:62;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);opacity:0;
+  background:var(--ink);color:var(--paper);padding:16px 26px;border-radius:16px;font-family:var(--serif);
+  font-size:22px;font-weight:600;box-shadow:0 20px 50px rgba(0,0,0,.3);pointer-events:none;text-align:center;}
+.badge.go{animation:pop 1.8s both;}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  80%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-55%) scale(.95)}}
+.banner{background:var(--amber-soft);color:var(--amber-ink);border-radius:12px;padding:11px 14px;font-size:13px;margin-bottom:6px;line-height:1.45;}
+.loadingdots:after{content:'…';animation:dots 1.2s steps(4) infinite;}
+@keyframes dots{0%{content:''}25%{content:'·'}50%{content:'··'}75%{content:'···'}}
+.backbtn{font-family:var(--mono);font-size:13px;color:var(--ink2);display:inline-flex;align-items:center;gap:6px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <div class="wordmark">带什么</div>
+      <div class="sub" id="hsub">摄影装备提醒</div>
+    </div>
+    <div class="statuschip" id="statuschip" onclick="go('settings');setTimeout(()=>document.getElementById('diagcard')?.scrollIntoView({behavior:'smooth'}),60)">
+      <span class="dot"></span><span id="statustxt">通知</span>
+    </div>
+  </header>
+  <div class="scroll" id="scroll"></div>
+</div>
+
+<nav id="nav">
+  <button data-v="shoots" class="active" onclick="go('shoots')"><span class="ico">📅</span><span class="lbl">拍摄</span></button>
+  <button data-v="templates" onclick="go('templates')"><span class="ico">🎒</span><span class="lbl">模板</span></button>
+  <button data-v="settings" onclick="go('settings')"><span class="ico">⚙︎</span><span class="lbl">设置</span></button>
+</nav>
+
+<div class="sheet-bg" id="sheetbg" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
+<div id="flash"></div>
+<div id="confetti"></div>
+<div class="badge" id="badge"></div>
+
+<script>
+/* ============================================================
+   带什么 — 单文件 App。浏览器=可点原型；原生壳=真实通知。
+   ============================================================ */
+const Cap = window.Capacitor;
+const isNative = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+const LN = Cap && Cap.Plugins ? Cap.Plugins.LocalNotifications : null;
+const BLOCK = 40; // 每场拍摄预留 40 个通知 ID
+
+/* ---------- 存储 ---------- */
+const KEY = 'daishenme.v2';
+let DB = load();
+function load(){
+  try{ const r = localStorage.getItem(KEY); if(r) return JSON.parse(r); }catch(e){}
+  return seed();
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(DB)); }
+function seed(){
+  return {
+    seq: 1000,
+    templates:[
+      {id:uid(),name:'婚礼',items:['机身 ×2','24-70mm','70-200mm','35mm 定焦','闪光灯 ×2','备用电池 ×4','存储卡 ×4','清洁布']},
+      {id:uid(),name:'风光',items:['机身','广角镜头','三脚架','ND 减光镜','渐变镜','快门线','备用电池','头灯']},
+      {id:uid(),name:'棚拍',items:['机身','85mm 定焦','影室灯 ×2','柔光箱','反光板','引闪器','色卡','胶带']},
+    ],
+    shoots:[],
+    settings:{ nightTime:'20:00', leads:[60, 15] }
+  };
+}
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+/* ---------- 路由 ---------- */
+let VIEW='shoots', CURRENT=null;
+function go(v){
+  VIEW=v; CURRENT=null;
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  render();
+}
+function openShoot(id){ VIEW='detail'; CURRENT=id; detailMode='pack'; render(); refreshContext(id); }
+
+/* ============================================================
+   通知核心
+   ============================================================ */
+async function ensurePermissions(){
+  if(!isNative || !LN) return;
+  try{
+    let p = await LN.checkPermissions();
+    if(p.display!=='granted'){ p = await LN.requestPermissions(); }
+  }catch(e){ console.warn('perm',e); }
+  try{ await LN.createChannel({ id:'reminders', name:'拍摄提醒', description:'到点收拾与出门核对', importance:5, visibility:1, sound:'default', vibration:true }); }catch(e){}
+  // 精确闹钟（安卓 12+）：能查就查，不行就忽略
+  try{ if(LN.checkExactNotificationSetting){ await LN.checkExactNotificationSetting(); } }catch(e){}
+}
+async function requestExact(){
+  if(!isNative||!LN) return;
+  try{ if(LN.changeExactNotificationSetting){ await LN.changeExactNotificationSetting(); } }catch(e){}
+}
+// 一次拍摄的所有提醒时间点
+function plannedTimes(shoot){
+  const when = new Date(shoot.when);
+  const out=[];
+  // 前一晚收拾
+  const [nh,nm] = DB.settings.nightTime.split(':').map(Number);
+  const night = new Date(when); night.setDate(night.getDate()-1); night.setHours(nh,nm,0,0);
+  out.push({ id:shoot.baseId, at:night, title:'该收拾装备了 🎒', body:`明天「${shoot.templateName}」${shoot.title?'·'+shoot.title:''}，现在把包装好`, kind:'night' });
+  // 出门核对（多条）
+  DB.settings.leads.forEach((lead,i)=>{
+    const t = new Date(when.getTime() - lead*60000);
+    out.push({ id:shoot.baseId+1+i, at:t, title:'出门前核对 ✦', body:`${lead>=60?(lead/60)+' 小时':lead+' 分钟'}后出发拍「${shoot.templateName}」，对一遍装备`, kind:'lead' });
+  });
+  return out;
+}
+async function scheduleShoot(shoot){
+  if(!isNative||!LN) return;
+  await cancelShoot(shoot);
+  const now = Date.now();
+  const notes = plannedTimes(shoot).filter(n=>n.at.getTime()>now+1500).map(n=>({
+    id:n.id, title:n.title, body:n.body, channelId:'reminders',
+    schedule:{ at:n.at, allowWhileIdle:true }
+  }));
+  if(notes.length){ try{ await LN.schedule({notifications:notes}); }catch(e){ console.warn('sched',e); } }
+}
+async function cancelShoot(shoot){
+  if(!isNative||!LN) return;
+  const ids=[]; for(let i=0;i<BLOCK;i++) ids.push({id:shoot.baseId+i});
+  try{ await LN.cancel({notifications:ids}); }catch(e){}
+}
+async function rescheduleAll(){
+  if(!isNative||!LN) return;
+  for(const s of DB.shoots){
+    if(isDone(s)) await cancelShoot(s); else await scheduleShoot(s);
+  }
+  updateStatusChip();
+}
+async function sendTestNotification(){
+  if(!isNative||!LN){ toast('浏览器预览模式：装到手机后此处会真的弹通知'); return; }
+  await ensurePermissions();
+  try{
+    await LN.schedule({notifications:[{ id:999999, title:'测试通知 ✓', body:'你能看到这条，说明通知通道正常。', channelId:'reminders', schedule:{ at:new Date(Date.now()+10000), allowWhileIdle:true } }]});
+    toast('已排程：10 秒后应弹出。可锁屏等待。');
+  }catch(e){ toast('排程失败：'+e); }
+}
+
+/* ============================================================
+   太阳/光照计算（标准天文公式，离线可算）
+   ============================================================ */
+const SUN=(function(){
+  const rad=Math.PI/180,dayMs=864e5,J1970=2440588,J2000=2451545,e=rad*23.4397;
+  const toJulian=d=>d.valueOf()/dayMs-0.5+J1970, fromJulian=j=>new Date((j+0.5-J1970)*dayMs), toDays=d=>toJulian(d)-J2000;
+  const sma=d=>rad*(357.5291+0.98560028*d);
+  const ecl=M=>M+rad*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M))+rad*102.9372+Math.PI;
+  const dec=L=>Math.asin(Math.sin(e)*Math.sin(L));
+  const cyc=(d,lw)=>Math.round(d-0.0009-lw/(2*Math.PI));
+  const tr=(Ht,lw,n)=>0.0009+(Ht+lw)/(2*Math.PI)+n;
+  const stJ=(ds,M,L)=>J2000+ds+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+  const ha=(h,phi,d)=>Math.acos((Math.sin(h)-Math.sin(phi)*Math.sin(d))/(Math.cos(phi)*Math.cos(d)));
+  function setJ(h,lw,phi,d,n,M,L){ return stJ(tr(ha(h,phi,d),lw,n),M,L); }
+  return function(date,lat,lng){
+    const lw=rad*-lng,phi=rad*lat,d0=toDays(date),n=cyc(d0,lw),ds=tr(0,lw,n),M=sma(ds),L=ecl(M),dc=dec(L),Jn=stJ(ds,M,L);
+    const ev=h=>{ const Js=setJ(h*rad,lw,phi,dc,n,M,L); if(isNaN(Js))return{r:null,s:null}; return{r:fromJulian(Jn-(Js-Jn)),s:fromJulian(Js)}; };
+    const sun=ev(-0.833),gold=ev(6),civ=ev(-6);
+    return { noon:fromJulian(Jn), sunrise:sun.r,sunset:sun.s,
+      goldAMend:gold.r, goldPMstart:gold.s, dawn:civ.r, dusk:civ.s };
+  };
+})();
+const fmtT=d=> d? d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false}):'—';
+function sunRows(date,lat,lng){
+  const t=SUN(date,lat,lng);
+  return [
+    {ic:'🌅',cls:'blue',nm:'晨蓝调',sub:'冷色调，城市夜景的尾声',v:`${fmtT(t.dawn)}–${fmtT(t.sunrise)}`},
+    {ic:'🌄',cls:'gold',nm:'晨间黄金时刻',sub:'柔暖斜光，最适合人像/风光',v:`${fmtT(t.sunrise)}–${fmtT(t.goldAMend)}`},
+    {ic:'☀️',cls:'',nm:'正午硬光',sub:'顶光、阴影硬，多数题材尽量避开',v:fmtT(t.noon)},
+    {ic:'🌇',cls:'gold',nm:'暮间黄金时刻',sub:'一天里最好的光，提前到场',v:`${fmtT(t.goldPMstart)}–${fmtT(t.sunset)}`},
+    {ic:'🌆',cls:'blue',nm:'暮蓝调',sub:'天空深蓝，灯光初上，拍城市',v:`${fmtT(t.sunset)}–${fmtT(t.dusk)}`},
+  ];
+}
+function bestLine(date,lat,lng){
+  const t=SUN(date,lat,lng);
+  return `晨间黄金时刻 ${fmtT(t.sunrise)}–${fmtT(t.goldAMend)}，暮间黄金时刻 ${fmtT(t.goldPMstart)}–${fmtT(t.sunset)}。这两段光最柔最暖，是大多数题材的最佳窗口。`;
+}
+
+/* ============================================================
+   天气（Open-Meteo，免费免 key，需联网）
+   ============================================================ */
+async function geocode(name){
+  const u=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=zh&format=json`;
+  const r=await fetch(u); const j=await r.json();
+  if(!j.results||!j.results.length) return null;
+  const g=j.results[0];
+  return {lat:g.latitude,lng:g.longitude,place:[g.name,g.admin1].filter(Boolean).join(' · ')};
+}
+async function fetchWeather(lat,lng){
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}`
+    +`&hourly=temperature_2m,precipitation_probability,cloud_cover,weather_code,wind_speed_10m`
+    +`&timezone=auto&forecast_days=16`;
+  const r=await fetch(u); return await r.json();
+}
+const WMO={0:['晴','☀️'],1:['大致晴朗','🌤️'],2:['多云','⛅'],3:['阴','☁️'],45:['雾','🌫️'],48:['雾凇','🌫️'],
+51:['小毛毛雨','🌦️'],53:['毛毛雨','🌦️'],55:['浓毛毛雨','🌧️'],61:['小雨','🌦️'],63:['中雨','🌧️'],65:['大雨','🌧️'],
+66:['冻雨','🌧️'],67:['强冻雨','🌧️'],71:['小雪','🌨️'],73:['中雪','🌨️'],75:['大雪','❄️'],77:['米雪','🌨️'],
+80:['阵雨','🌦️'],81:['强阵雨','🌧️'],82:['暴阵雨','⛈️'],85:['阵雪','🌨️'],86:['强阵雪','❄️'],95:['雷阵雨','⛈️'],96:['雷暴冰雹','⛈️'],99:['强雷暴','⛈️']};
+function wmo(c){ return WMO[c]||['未知','🌡️']; }
+function pickHour(j, when){
+  // 找最接近拍摄时刻的整点
+  const target=new Date(when); const arr=j.hourly.time; let bi=0,bd=Infinity;
+  for(let i=0;i<arr.length;i++){ const d=Math.abs(new Date(arr[i])-target); if(d<bd){bd=d;bi=i;} }
+  if(bd>1000*60*60*24){ return null; } // 超出预报范围（>16天）
+  return {
+    temp:Math.round(j.hourly.temperature_2m[bi]),
+    pop:j.hourly.precipitation_probability?.[bi] ?? null,
+    cloud:j.hourly.cloud_cover?.[bi] ?? null,
+    wind:Math.round(j.hourly.wind_speed_10m?.[bi] ?? 0),
+    code:j.hourly.weather_code[bi]
+  };
+}
+function photoVerdict(w){
+  if(w.pop!=null && w.pop>=60) return {cls:'bad',t:`降水概率 ${w.pop}%，大概率有雨——备好相机防雨罩与擦镜布，或考虑改期。`};
+  if(w.cloud!=null && w.cloud<=20) return {cls:'mid',t:`晴空（云量 ${w.cloud}%），光线硬、反差大。避开正午，主打黄金时刻与蓝调；人像记得补光或找阴影。`};
+  if(w.cloud!=null && w.cloud>=80) return {cls:'mid',t:`阴天（云量 ${w.cloud}%），光线柔和均匀，适合人像与静物；天空偏灰，风光构图少留天空。`};
+  return {cls:'good',t:`云量 ${w.cloud??'—'}%、降水 ${w.pop??'—'}%——疏云天气，光线有层次又不至于太硬，拍摄条件不错。`};
+}
+
+/* 拉取并缓存某场拍摄的天气+定位 */
+async function refreshContext(id, force){
+  const s=DB.shoots.find(x=>x.id===id); if(!s) return;
+  // 1) 定位：没有坐标就用地点文字反查
+  if((s.lat==null||s.lng==null) && s.location){
+    const el=document.getElementById('wxcard'); if(el) el.innerHTML=`<div class="muted">正在定位「${s.location}」<span class="loadingdots"></span></div>`;
+    try{ const g=await geocode(s.location); if(g){ s.lat=g.lat; s.lng=g.lng; s.place=g.place; save(); } }
+    catch(e){ /* 离线/被拦截 */ }
+  }
+  // 2) 光照（本地算，立即渲染）
+  if(VIEW==='detail'&&CURRENT===id) render();
+  // 3) 天气（联网）
+  if(s.lat!=null){
+    const fresh = s.wx && !force && (Date.now()-s.wx.at < 3*3600*1000);
+    if(!fresh){
+      const el=document.getElementById('wxbody'); if(el) el.innerHTML=`<div class="muted">获取天气<span class="loadingdots"></span></div>`;
+      try{ const j=await fetchWeather(s.lat,s.lng); s.wx={at:Date.now(), hour:pickHour(j,s.when)}; save(); }
+      catch(e){ s.wxErr=true; }
+    }
+    if(VIEW==='detail'&&CURRENT===id) render();
+  }
+}
+
+/* ============================================================
+   逻辑：进度/完成
+   ============================================================ */
+function packedCount(s){ return s.checklist.filter(i=>i.packed).length; }
+function verifiedCount(s){ return s.checklist.filter(i=>i.verified).length; }
+function isPacked(s){ return s.checklist.length>0 && packedCount(s)===s.checklist.length; }
+function isVerified(s){ return s.checklist.length>0 && verifiedCount(s)===s.checklist.length; }
+function isDone(s){ return isVerified(s) && new Date(s.when) < new Date(); }
+function fmtWhen(w){
+  const d=new Date(w), now=new Date();
+  const day=['日','一','二','三','四','五','六'][d.getDay()];
+  const dd=`${d.getMonth()+1}月${d.getDate()}日 周${day} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const diff=Math.round((d-now)/86400000);
+  let rel=''; if(d>now){ if(diff===0) rel='今天'; else if(diff===1) rel='明天'; else if(diff<7) rel=diff+'天后'; }
+  return rel?`${dd}　·　${rel}`:dd;
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+const $scroll=document.getElementById('scroll');
+function render(){
+  updateStatusChip();
+  if(VIEW==='shoots') return renderShoots();
+  if(VIEW==='templates') return renderTemplates();
+  if(VIEW==='settings') return renderSettings();
+  if(VIEW==='detail') return renderDetail();
+}
+
+function renderShoots(){
+  document.getElementById('hsub').textContent='摄影装备提醒';
+  const up = DB.shoots.filter(s=>!isDone(s)).sort((a,b)=>new Date(a.when)-new Date(b.when));
+  const done = DB.shoots.filter(s=>isDone(s)).sort((a,b)=>new Date(b.when)-new Date(a.when));
+  if(!DB.shoots.length){
+    $scroll.innerHTML=`<div class="empty fade"><div class="ic">📷</div><h3>还没有安排拍摄</h3>
+      <p>先去「模板」备好各类拍摄的装备清单，<br>再回来排一场拍摄，我会到点提醒你。</p>
+      <button class="btn btn-amber btn-block" onclick="go('templates')">先去建模板</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="newShoot()">直接排一场拍摄</button></div>`;
+    return;
+  }
+  let h=`<button class="btn btn-primary btn-block fade" style="margin-top:6px" onclick="newShoot()">＋ 排一场拍摄</button>`;
+  if(!isNative) h=`<div class="banner fade">📱 当前是浏览器预览，提醒不会真的弹出。装到安卓手机后即为真实系统通知。</div>`+h;
+  h+=`<h2>即将到来</h2>`;
+  h+= up.length? `<div class="stagger">${up.map(shootCard).join('')}</div>` : `<div class="card muted fade">暂无即将到来的拍摄</div>`;
+  if(done.length){ h+=`<h2>已完成</h2><div class="stagger">${done.map(shootCard).join('')}</div>`; }
+  $scroll.innerHTML=h;
+}
+function shootCard(s){
+  const pc=packedCount(s),total=s.checklist.length;
+  const done=isDone(s);
+  const statusTag = done?'<span class="tag green">已完成</span>'
+    : isPacked(s)?'<span class="tag green">已装包</span>'
+    : '<span class="tag">待收拾</span>';
+  return `<div class="card shoot" onclick="openShoot('${s.id}')">
+    <div class="top"><div>
+      <div class="title">${s.title||s.templateName}</div>
+      <div class="when">${fmtWhen(s.when)}</div>
+    </div><div class="tag">${s.templateName}</div></div>
+    <div class="meta">${statusTag}${s.location?`<span class="muted mono" style="font-size:12px">📍${s.location}</span>`:''}</div>
+    <div class="bar"><i style="width:${total?pc/total*100:0}%"></i></div>
+    <div class="prog">装包 ${pc}/${total}</div>
+  </div>`;
+}
+
+let detailMode='pack';
+function renderDetail(){
+  const s=DB.shoots.find(x=>x.id===CURRENT); if(!s){ go('shoots'); return; }
+  document.getElementById('hsub').textContent='拍摄详情';
+  const verifyMode = detailMode==='verify';
+  const cnt = verifyMode?verifiedCount(s):packedCount(s), total=s.checklist.length;
+
+  // 光照
+  let lightHtml=`<div class="card muted">填写地点后可计算这天的光照时刻</div>`;
+  if(s.lat!=null){
+    const date=new Date(s.when);
+    lightHtml=`<div class="best"><div class="h">📸 最佳拍摄窗口</div><div class="b">${bestLine(date,s.lat,s.lng)}</div></div>
+      <div class="card" style="margin-top:10px"><div class="suntimes">${
+        sunRows(date,s.lat,s.lng).map(r=>`<div class="t"><div class="l"><span class="ic">${r.ic}</span>
+          <span class="nm ${r.cls}">${r.nm}<small>${r.sub}</small></span></div><span class="v ${r.cls}">${r.v}</span></div>`).join('')
+      }</div><div class="muted mono" style="font-size:11px;margin-top:8px">按本机时区显示 · ${s.place||s.location||''}</div></div>`;
+  }
+
+  // 天气
+  let wxHtml=`<div id="wxcard" class="card muted">填写地点后可查看天气</div>`;
+  if(s.lat!=null){
+    let body;
+    if(s.wxErr && !s.wx){ body=`<div class="muted">天气获取失败，请联网后在手机上下拉刷新。</div>`; }
+    else if(s.wx && s.wx.hour){
+      const w=s.wx.hour, m=wmo(w.code), v=photoVerdict(w);
+      body=`<div class="wx"><div class="emoji">${m[1]}</div><div>
+          <div class="big">${w.temp}°</div><div class="desc">${m[0]}</div></div></div>
+        <div class="wxgrid">
+          <div class="cell"><div class="v">${w.cloud??'—'}%</div><div class="k">云量</div></div>
+          <div class="cell"><div class="v">${w.pop??'—'}%</div><div class="k">降水概率</div></div>
+          <div class="cell"><div class="v">${w.wind}</div><div class="k">风速 km/h</div></div>
+        </div>
+        <div class="verdict ${v.cls}">${v.t}</div>`;
+    }
+    else if(s.wx && !s.wx.hour){ body=`<div class="muted">拍摄日期超出 16 天预报范围，临近时再来查看天气。</div>`; }
+    else { body=`<div class="muted">获取天气<span class="loadingdots"></span></div>`; }
+    wxHtml=`<div class="card" id="wxcard"><div class="row" style="justify-content:space-between">
+        <div class="mono muted" style="font-size:12px">📍 ${s.place||s.location}</div>
+        <button class="mono" style="font-size:12px;color:var(--amber-ink)" onclick="refreshContext('${s.id}',true)">↻ 刷新</button>
+      </div><div id="wxbody" style="margin-top:10px">${body}</div></div>`;
+  }
+
+  const list = s.checklist.map((it,i)=>{
+    const on = verifyMode?it.verified:it.packed;
+    const showNight = verifyMode && it.packed;
+    return `<div class="check ${on?'on':''} ${verifyMode?'verify':''}" onclick="toggle('${s.id}',${i})">
+      <div class="box"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></div>
+      <div class="name">${it.name}</div>
+      ${showNight?'<span class="lastnight">昨晚已装</span>':''}
+      <span class="del" onclick="event.stopPropagation();delItem('${s.id}',${i})">✕</span>
+    </div>`;
+  }).join('');
+
+  const allChecked = total>0 && cnt===total;
+  let footer='';
+  if(allChecked){
+    footer = verifyMode
+      ? `<button class="btn btn-amber btn-block" style="margin-top:16px" onclick="finishVerify('${s.id}')">齐了，出发 ✦</button>`
+      : `<button class="btn btn-primary btn-block" style="margin-top:16px" onclick="detailMode='verify';render()">装包完成 → 去核对</button>`;
+  }
+
+  $scroll.innerHTML=`
+    <button class="backbtn fade" onclick="go('shoots')">‹ 返回</button>
+    <div class="fade" style="margin-top:8px">
+      <div style="font-family:var(--serif);font-size:24px;font-weight:600">${s.title||s.templateName}</div>
+      <div class="when mono" style="margin-top:4px">${fmtWhen(s.when)}</div>
+      <div class="meta" style="margin-top:8px"><span class="tag">${s.templateName}</span>${s.location?`<span class="muted mono" style="font-size:12px">📍${s.location}</span>`:''}</div>
+    </div>
+    <h2 style="margin-top:22px">☀ 光照与最佳时间</h2>${lightHtml}
+    <h2>🌤 天气</h2>${wxHtml}
+    <h2>清单</h2>
+    <div class="modes">
+      <button class="${!verifyMode?'active':''}" onclick="detailMode='pack';render()">收拾装包</button>
+      <button class="${verifyMode?'active':''}" onclick="detailMode='verify';render()">出门核对</button>
+    </div>
+    <div class="bar"><i style="width:${total?cnt/total*100:0}%;background:${verifyMode?'var(--green)':'var(--amber)'}"></i></div>
+    <div class="prog">${verifyMode?'已核对':'已装包'} ${cnt}/${total}</div>
+    <div class="card" style="margin-top:12px">${list||'<div class="muted">清单为空，下面加几件</div>'}</div>
+    <div class="itemline">
+      <input id="addItem" placeholder="临时加一件（只影响这次）" onkeydown="if(event.key==='Enter')addItem('${s.id}')"/>
+      <button class="btn btn-ghost" onclick="addItem('${s.id}')">＋</button>
+    </div>
+    ${footer}`;
+}
+
+function renderTemplates(){
+  document.getElementById('hsub').textContent='装备模板';
+  let h=`<button class="btn btn-primary btn-block fade" style="margin-top:6px" onclick="editTemplate()">＋ 新建模板</button><div class="stagger" style="margin-top:14px">`;
+  if(!DB.templates.length) h+=`<div class="card muted">还没有模板</div>`;
+  h+=DB.templates.map(t=>`<div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><div style="font-family:var(--serif);font-size:18px;font-weight:600">${t.name}</div>
+      <div class="mono muted" style="font-size:12px;margin-top:3px">${t.items.length} 件 · ${t.items.slice(0,3).join('、')}${t.items.length>3?'…':''}</div></div>
+      <div class="row" style="gap:6px">
+        <button class="mono" style="font-size:13px;color:var(--amber-ink)" onclick="editTemplate('${t.id}')">编辑</button>
+        <button class="del" onclick="delTemplate('${t.id}')">删除</button>
+      </div>
+    </div></div>`).join('');
+  h+=`</div>`;
+  $scroll.innerHTML=h;
+}
+
+function renderSettings(){
+  document.getElementById('hsub').textContent='提醒设置';
+  const st=DB.settings;
+  const diag = diagItems();
+  $scroll.innerHTML=`
+    <h2 style="margin-top:8px">提醒节奏</h2>
+    <div class="card fade">
+      <label class="fld">前一天「收拾」提醒时间</label>
+      <input type="time" id="nightTime" value="${st.nightTime}" onchange="setNight(this.value)"/>
+      <label class="fld" style="margin-top:18px">出门前「核对」提醒（可多条，单位分钟）</label>
+      <div id="leadList">${st.leads.map((l,i)=>`<div class="itemline">
+        <input type="number" min="1" value="${l}" onchange="setLead(${i},this.value)"/>
+        <span class="mono muted" style="font-size:12px;white-space:nowrap">分钟前</span>
+        <button onclick="delLead(${i})">✕</button></div>`).join('')}</div>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="addLead()">＋ 再加一条</button>
+    </div>
+
+    <h2>通知自检</h2>
+    <div class="card fade" id="diagcard">
+      <div class="muted" style="font-size:13px;margin-bottom:6px">到点没响，九成是下面某项没到位。逐条检查：</div>
+      ${diag.map(d=>`<div class="diag"><div class="s ${d.s}">${d.s==='ok'?'✓':d.s==='warn'?'!':'✕'}</div>
+        <div class="tx"><b>${d.t}</b><small>${d.d}</small></div>
+        ${d.act?`<button class="act" onclick="${d.act}">${d.actLabel}</button>`:''}</div>`).join('')}
+      <button class="btn btn-amber btn-block" style="margin-top:14px" onclick="sendTestNotification()">发送测试通知（10 秒后）</button>
+    </div>
+
+    <h2>数据</h2>
+    <div class="card fade">
+      <button class="btn btn-ghost btn-block" onclick="resetData()">清空数据并恢复示例</button>
+    </div>
+    <div style="height:10px"></div>`;
+}
+function diagItems(){
+  if(!isNative){
+    return [{s:'warn',t:'浏览器预览模式',d:'装到安卓手机后这里会显示真实的权限状态与修复入口。'}];
+  }
+  const items=[];
+  items.push({s: PERM.display==='granted'?'ok':'no', t:'通知权限', d: PERM.display==='granted'?'已允许显示通知':'未允许，点右侧开启', act: PERM.display!=='granted'?'ensurePermissions().then(refreshDiag)':'', actLabel:'去开启'});
+  items.push({s: PERM.exact==='granted'?'ok':(PERM.exact==='denied'?'no':'warn'), t:'精确闹钟权限（安卓 12+）', d:'保证到点准时触发，不被系统延后', act:'requestExact()', actLabel:'去设置'});
+  items.push({s:'warn', t:'电池后台限制（最关键）', d:'国产手机会清后台杀闹钟。请把本 App 设为「无限制／允许后台／锁定不清理」，并关闭省电策略。', act:'openBatterySettings()', actLabel:'去设置'});
+  items.push({s:'ok', t:'排程方式', d:'已启用 allowWhileIdle，可在息屏打盹时触发。'});
+  return items;
+}
+let PERM={display:'prompt',exact:'unknown'};
+async function refreshDiag(){
+  if(isNative&&LN){
+    try{ PERM.display=(await LN.checkPermissions()).display; }catch(e){}
+    try{ if(LN.checkExactNotificationSetting){ const r=await LN.checkExactNotificationSetting(); PERM.exact=r.exact_alarm||r.exactAlarm||'unknown'; } }catch(e){}
+  }
+  if(VIEW==='settings') render();
+  updateStatusChip();
+}
+function openBatterySettings(){
+  // 引导到系统设置；不同 ROM 路径不同，给出文字指引
+  toast('请前往：系统设置 → 应用 → 带什么 → 省电策略/后台 → 设为「无限制」并允许自启动');
+  if(isNative && Cap.Plugins.App){ /* 可选：用插件打开设置页 */ }
+}
+
+function updateStatusChip(){
+  const chip=document.getElementById('statuschip'), tx=document.getElementById('statustxt');
+  if(!isNative){ chip.className='statuschip warn'; tx.textContent='预览'; return; }
+  const ok = PERM.display==='granted';
+  chip.className='statuschip '+(ok?'ok':'bad');
+  tx.textContent = ok?'通知开':'通知未开';
+}
+
+/* ============================================================
+   交互动作
+   ============================================================ */
+function toggle(id,i){
+  const s=DB.shoots.find(x=>x.id===id); const it=s.checklist[i];
+  if(detailMode==='verify') it.verified=!it.verified; else it.packed=!it.packed;
+  save();
+  const before = detailMode==='verify'?isVerified(s):isPacked(s);
+  render();
+  // 完成特效
+  if(detailMode==='pack' && isPacked(s)) celebrate('pack');
+  if(detailMode==='verify' && isVerified(s)) celebrate('verify');
+}
+function addItem(id){
+  const inp=document.getElementById('addItem'); const v=inp.value.trim(); if(!v) return;
+  const s=DB.shoots.find(x=>x.id===id); s.checklist.push({name:v,packed:false,verified:false}); save(); render();
+  setTimeout(()=>{const el=document.getElementById('addItem'); if(el) el.focus();},50);
+}
+function delItem(id,i){ const s=DB.shoots.find(x=>x.id===id); s.checklist.splice(i,1); save(); render(); }
+
+async function finishVerify(id){
+  const s=DB.shoots.find(x=>x.id===id);
+  await cancelShoot(s); // 全核对完，取消剩余提醒
+  toast('一切就绪，路上小心 ✦');
+}
+
+/* 新建拍摄 */
+function newShoot(){
+  if(!DB.templates.length){ toast('请先在「模板」里建一套装备清单'); go('templates'); return; }
+  let sel=DB.templates[0].id;
+  const now=new Date(Date.now()+86400000); now.setHours(9,0,0,0);
+  const dl=now.toISOString().slice(0,16);
+  openSheet(`<h3>排一场拍摄</h3>
+    <label class="fld">拍摄类型（决定带什么）</label>
+    <div class="chips" id="tplChips">${DB.templates.map(t=>`<button class="chip ${t.id===sel?'active':''}" data-id="${t.id}" onclick="pickTpl('${t.id}')">${t.name}</button>`).join('')}</div>
+    <label class="fld">时间</label><input type="datetime-local" id="nsWhen" value="${dl}"/>
+    <label class="fld">标题（可选）</label><input id="nsTitle" placeholder="如：小王婚礼"/>
+    <label class="fld">地点（填了才能查天气与光照）</label><input id="nsLoc" placeholder="如：杭州西湖 / 上海外滩"/>
+    <button class="btn btn-amber btn-block" style="margin-top:20px" onclick="createShoot()">创建并排好提醒</button>`);
+  window.__selTpl=sel;
+}
+function pickTpl(id){ window.__selTpl=id; document.querySelectorAll('#tplChips .chip').forEach(c=>c.classList.toggle('active',c.dataset.id===id)); }
+async function createShoot(){
+  const tpl=DB.templates.find(t=>t.id===window.__selTpl);
+  const when=document.getElementById('nsWhen').value;
+  if(!when){ toast('请选择时间'); return; }
+  const baseId=DB.seq; DB.seq+=BLOCK;
+  const s={ id:uid(), baseId, title:document.getElementById('nsTitle').value.trim(),
+    when:new Date(when).toISOString(), location:document.getElementById('nsLoc').value.trim(),
+    templateId:tpl.id, templateName:tpl.name,
+    checklist: tpl.items.map(n=>({name:n,packed:false,verified:false})), // 复制快照
+    lat:null,lng:null };
+  DB.shoots.push(s); save();
+  await ensurePermissions(); await scheduleShoot(s); await refreshDiag();
+  closeSheet(); openShoot(s.id);
+}
+
+/* 模板编辑 */
+function editTemplate(id){
+  const t = id? DB.templates.find(x=>x.id===id) : {id:null,name:'',items:[]};
+  window.__tpl=JSON.parse(JSON.stringify(t));
+  renderTplSheet();
+}
+function renderTplSheet(){
+  const t=window.__tpl;
+  openSheet(`<h3>${t.id?'编辑模板':'新建模板'}</h3>
+    <label class="fld">类型名称</label><input id="tName" value="${t.name}" placeholder="如：婚礼 / 风光 / 棚拍" oninput="window.__tpl.name=this.value"/>
+    <label class="fld">装备项</label>
+    <div id="tItems">${t.items.map((it,i)=>`<div class="itemline">
+      <input value="${it}" oninput="window.__tpl.items[${i}]=this.value"/>
+      <button onclick="window.__tpl.items.splice(${i},1);renderTplSheet()">✕</button></div>`).join('')}</div>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="window.__tpl.items.push('');renderTplSheet()">＋ 加一项</button>
+    <button class="btn btn-amber btn-block" style="margin-top:16px" onclick="saveTemplate()">保存模板</button>`);
+}
+function saveTemplate(){
+  const t=window.__tpl; t.name=(t.name||'').trim(); t.items=t.items.map(s=>s.trim()).filter(Boolean);
+  if(!t.name){ toast('请填类型名称'); return; }
+  if(!t.items.length){ toast('至少加一件装备'); return; }
+  if(t.id){ const idx=DB.templates.findIndex(x=>x.id===t.id); DB.templates[idx]={...t}; }
+  else { t.id=uid(); DB.templates.push({...t}); }
+  save(); closeSheet(); render();
+}
+function delTemplate(id){
+  const using=DB.shoots.filter(s=>s.templateId===id && !isDone(s)).length;
+  const msg = using? `有 ${using} 场拍摄用了这个模板。清单是快照，删模板不影响它们。确定删除？` : '确定删除这个模板？';
+  if(confirm(msg)){ DB.templates=DB.templates.filter(t=>t.id!==id); save(); render(); }
+}
+
+/* 设置动作 */
+function setNight(v){ DB.settings.nightTime=v; save(); rescheduleAll(); }
+function setLead(i,v){ const n=parseInt(v); if(n>0){ DB.settings.leads[i]=n; save(); rescheduleAll(); } }
+function addLead(){ DB.settings.leads.push(30); save(); render(); rescheduleAll(); }
+function delLead(i){ DB.settings.leads.splice(i,1); save(); render(); rescheduleAll(); }
+function resetData(){ if(confirm('清空所有数据并恢复示例？')){ DB=seed(); save(); rescheduleAll(); go('shoots'); } }
+
+/* 弹层 */
+function openSheet(html){ document.getElementById('sheet').innerHTML='<div class="grab"></div>'+html;
+  document.getElementById('sheetbg').classList.add('show'); document.getElementById('sheet').classList.add('show'); }
+function closeSheet(){ document.getElementById('sheetbg').classList.remove('show'); document.getElementById('sheet').classList.remove('show'); }
+
+/* 特效 */
+function celebrate(kind){
+  const colors = kind==='verify'?['#2f5d4f','#c8821a','#9c4a2f','#d9b15a']:['#c8821a','#d9b15a','#e9c97a','#9c4a2f'];
+  if(kind==='verify'){ const f=document.getElementById('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+  const box=document.getElementById('confetti'); box.innerHTML='';
+  for(let i=0;i<70;i++){ const c=document.createElement('div'); c.className='conf';
+    c.style.left=Math.random()*100+'%'; c.style.background=colors[i%colors.length];
+    c.style.animation=`drop ${1+Math.random()*1.2}s ${Math.random()*.3}s ease-in forwards`;
+    c.style.transform=`rotate(${Math.random()*360}deg)`; box.appendChild(c); }
+  setTimeout(()=>box.innerHTML='',2600);
+  const b=document.getElementById('badge'); b.textContent = kind==='verify'?'齐了，出发 ✦':'🎒 装包完成';
+  b.classList.remove('go'); void b.offsetWidth; b.classList.add('go');
+  if(navigator.vibrate) navigator.vibrate(kind==='verify'?[0,40,30,40]:30);
+}
+let toastTimer;
+function toast(msg){
+  let t=document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast'; document.body.appendChild(t);
+    t.style.cssText='position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:70;background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:12px;max-width:88%;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:opacity .25s;text-align:center;line-height:1.45;'; }
+  t.textContent=msg; t.style.opacity='1'; clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.style.opacity='0',3200);
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+async function boot(){
+  render();
+  if(isNative){
+    await ensurePermissions();
+    await rescheduleAll();   // 重要：每次打开都按当前设置重排，弥补被系统清掉的提醒
+    await refreshDiag();
+  }
+}
+document.addEventListener('DOMContentLoaded',boot);
+if(document.readyState!=='loading') boot();
+</script>
+</body>
+</html>
